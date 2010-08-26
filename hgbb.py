@@ -4,7 +4,7 @@
     ~~~~
 
     This extension provides simple access to some bitbucket features such as
-    repository creation and checkout via short URL schemes.
+    checkout via short URL schemes.
 
     Configuration values::
 
@@ -50,7 +50,13 @@
         51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-from mercurial import hg, sshrepo, httprepo, util
+from mercurial import hg, commands, sshrepo, httprepo, util, error
+
+import urllib
+import urlparse
+from time import sleep
+
+from lxml.html import parse
 
 
 def getusername(ui):
@@ -89,13 +95,62 @@ class bbrepo(object):
 
 
 class auto_bbrepo(object):
-
     def instance(self, ui, url, create):
         method = ui.config('bb', 'default_method', 'https')
         if method not in ('ssh', 'http', 'https'):
             raise util.Abort('Invalid config value for bb.default_method: %s'
                              % method)
         return hg.schemes['bb+' + method].instance(ui, url, create)
+
+
+def bb_forks(ui, repo, **opts):
+    reponame = opts.get('reponame')
+    if not reponame:
+        reponame = 'sphinx'
+    if '/' not in reponame:
+        reponame = '%s/%s' % (getusername(ui), reponame)
+    ui.status('getting descendants list\n')
+    fp = urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame)
+    try:
+        tree = parse(fp)
+    finally:
+        fp.close()
+    try:
+        forklist = tree.findall('//div[@class="repos-all"]')[1]
+        urls = [a.attrib['href'] for a in forklist.findall('div/a')]
+    except Exception:
+        raise util.Abort('scraping bitbucket page failed')
+    forks = [(urlparse.urlsplit(url)[2][1:], url) for url in urls]
+    # filter
+    ignore = set(ui.configlist('bb', 'ignore_forks'))
+    forks = [(name, url) for (name, url) in forks if name not in ignore]
+
+    if opts.get('incoming'):
+        for name, url in forks:
+            ui.status('looking at bb+http:%s\n' % name)
+            try:
+                ui.quiet = True
+                ui.pushbuffer()
+                try:
+                    commands.incoming(ui, repo, url, bundle='', template='\xff')
+                finally:
+                    ui.quiet = False
+                    contents = ui.popbuffer()
+            except error.RepoError, msg:
+                ui.warn('Error: %s\n' % msg)
+            finally:
+                if contents:
+                    number = contents.count('\xff')
+                    if number:
+                        ui.status('%d incoming changeset%s found\n' %
+                                  (number, number > 1 and 's' or ''),
+                                  label='status.modified')
+                    ui.write(contents.replace('\xff', ''))
+    else:
+        for name, url in forks:
+            ui.status('bb+http:%s\n' % name)
+            #json = urllib.urlopen(
+            #    'http://api.bitbucket.org/1.0/repositories/%s/' % name).read()
 
 
 hg.schemes['bb'] = auto_bbrepo()
@@ -106,12 +161,13 @@ hg.schemes['bb+https'] = bbrepo(
 hg.schemes['bb+ssh'] = bbrepo(
     sshrepo.sshrepository, 'ssh://hg@bitbucket.org/%(path)s')
 
-## Waiting for the API :)
-#cmdtable = {
-#    'bbcreate':
-#        (bb_create,
-#         [('p', 'private', None, 'create a private repository'),
-#          ('w', 'website', '', 'the website for the repository'),
-#          ('d', 'description', '', 'the description for the repository')],
-#         'hg bbcreate REPOSITORY [-p]')
-#}
+cmdtable = {
+    'bbforks':
+        (bb_forks,
+         [('n', 'reponame', '',
+           'name of the repo at bitbucket (else guessed from repo dir)'),
+          ('i', 'incoming', None,
+           'look for incoming changesets')
+          ],
+         'hg bbforks [-n reponame]')
+}
