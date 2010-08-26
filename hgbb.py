@@ -52,6 +52,7 @@
 
 from mercurial import hg, commands, sshrepo, httprepo, util, error
 
+import os
 import urllib
 import urlparse
 from time import sleep
@@ -65,7 +66,9 @@ def getusername(ui):
     if username:
         return username
     import getpass
-    return getpass.getuser()
+    username = getpass.getuser()
+    ui.status('using system user %r as username' % username)
+    return username
 
 
 class bbrepo(object):
@@ -105,10 +108,15 @@ class auto_bbrepo(object):
 
 def bb_forks(ui, repo, **opts):
     reponame = opts.get('reponame')
+    constructed = False
     if not reponame:
-        reponame = 'sphinx'
+        reponame = os.path.split(repo.root)[1]
+        constructed = True
     if '/' not in reponame:
         reponame = '%s/%s' % (getusername(ui), reponame)
+        constructed = True
+    if constructed:
+        ui.status('using %r as repo name\n' % reponame)
     ui.status('getting descendants list\n')
     fp = urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame)
     try:
@@ -121,18 +129,21 @@ def bb_forks(ui, repo, **opts):
     except Exception:
         raise util.Abort('scraping bitbucket page failed')
     forks = [(urlparse.urlsplit(url)[2][1:], url) for url in urls]
-    # filter
+    # filter out ignored forks
     ignore = set(ui.configlist('bb', 'ignore_forks'))
     forks = [(name, url) for (name, url) in forks if name not in ignore]
 
     if opts.get('incoming'):
+        templateopts = {}
+        if not opts.get('full'):
+            templateopts['template'] = '\xff'
         for name, url in forks:
             ui.status('looking at bb+http:%s\n' % name)
             try:
-                ui.quiet = True
+                if not opts.get('full'): ui.quiet = True
                 ui.pushbuffer()
                 try:
-                    commands.incoming(ui, repo, url, bundle='', template='\xff')
+                    commands.incoming(ui, repo, url, bundle='', **templateopts)
                 finally:
                     ui.quiet = False
                     contents = ui.popbuffer()
@@ -166,8 +177,8 @@ cmdtable = {
         (bb_forks,
          [('n', 'reponame', '',
            'name of the repo at bitbucket (else guessed from repo dir)'),
-          ('i', 'incoming', None,
-           'look for incoming changesets')
+          ('i', 'incoming', None, 'look for incoming changesets'),
+          ('f', 'full', None, 'show full incoming info'),
           ],
          'hg bbforks [-n reponame]')
 }
