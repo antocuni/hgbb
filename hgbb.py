@@ -6,11 +6,11 @@
     This extension provides simple access to some bitbucket features such as
     repository creation and checkout via short URL schemes.
 
-    Configuration Values::
+    Configuration values::
 
         [bb]
         username = your bitbucket username
-        password = your bitbucket http password if you're using http checkout
+        password = your bitbucket http password for http (optional)
         default_method = the default checkout method to use (http, ssh or https)
 
     Implemented URL Schemas:
@@ -33,7 +33,7 @@
     bb+ssh:username/repo
         clones the "repo" repository by username, checkout via ssh
 
-    :copyright: 2009 by Armin Ronacher.
+    :copyright: 2009, 2010 by Armin Ronacher, Georg Brandl.
     :license:
         This program is free software; you can redistribute it and/or modify it
         under the terms of the GNU General Public License as published by the
@@ -42,16 +42,15 @@
 
         This program is distributed in the hope that it will be useful, but
         WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
-        Public License for more details.
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        General Public License for more details.
 
         You should have received a copy of the GNU General Public License along
         with this program; if not, write to the Free Software Foundation, Inc.,
         51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
-import sys
 
-from mercurial import commands, cmdutil, patch, sshrepo, httprepo, hg, ui, util
+from mercurial import hg, sshrepo, httprepo, util
 
 
 def getusername(ui):
@@ -63,11 +62,7 @@ def getusername(ui):
     return getpass.getuser()
 
 
-def bb_create(ui, repo, reponame, **opts):
-    print reponame, opts
-
-
-class BBRepo(object):
+class bbrepo(object):
     """Short URL to clone from or push to bitbucket."""
 
     def __init__(self, factory, url):
@@ -93,14 +88,23 @@ class BBRepo(object):
         return self.factory(ui, self.url % formats, create)
 
 
-class AutoRepo(object):
+class auto_bbrepo(object):
 
     def instance(self, ui, url, create):
         method = ui.config('bb', 'default_method', 'https')
         if method not in ('ssh', 'http', 'https'):
-            raise util.Abort('Invalid config value for paste.default_method: %s' % method)
+            raise util.Abort('Invalid config value for bb.default_method: %s'
+                             % method)
         return hg.schemes['bb+' + method].instance(ui, url, create)
 
+
+hg.schemes['bb'] = auto_bbrepo()
+hg.schemes['bb+http'] = bbrepo(
+    httprepo.instance, 'http://%(auth)sbitbucket.org/%(path)s')
+hg.schemes['bb+https'] = bbrepo(
+    httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
+hg.schemes['bb+ssh'] = bbrepo(
+    sshrepo.sshrepository, 'ssh://hg@bitbucket.org/%(path)s')
 
 ## Waiting for the API :)
 #cmdtable = {
@@ -111,8 +115,3 @@ class AutoRepo(object):
 #          ('d', 'description', '', 'the description for the repository')],
 #         'hg bbcreate REPOSITORY [-p]')
 #}
-
-hg.schemes['bb'] = AutoRepo()
-hg.schemes['bb+http'] = BBRepo(httprepo.instance, 'http://%(auth)sbitbucket.org/%(path)s')
-hg.schemes['bb+https'] = BBRepo(httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
-hg.schemes['bb+ssh'] = BBRepo(sshrepo.sshrepository, 'ssh://hg@bitbucket.org/%(path)s')
