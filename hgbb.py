@@ -133,6 +133,9 @@ def get_reponame(ui, repo, opts):
     try:
         forklist = tree.findall('//div[@class="repos-all"]')[1]
         urls = [a.attrib['href'] for a in forklist.findall('div/a')]
+        if len(urls) == 1 and urls[0].endswith(reponame + '/overview'):
+            ui.status('this repository has no forks yet\n')
+            return
     except Exception:
         raise util.Abort('scraping bitbucket page failed')
     forks = [(urlparse.urlsplit(url)[2][1:], url) for url in urls]
