@@ -87,7 +87,8 @@ def get_bbreponame(ui, repo, opts):
                         reponame = parts[2].strip('/')
                         break
                     if parts[0].startswith('bb'):
-                        reponame = ('%s/%s'% parts[1:3]).strip('/')
+                        # parts[2] is '' starts with /
+                        reponame = ''.join(parts[1:3]).strip('/')
                         break
                 if path.startswith('bb:'):
                     reponame = path[3:]
