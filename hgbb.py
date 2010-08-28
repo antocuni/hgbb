@@ -89,7 +89,8 @@ def get_bbreponame(ui, repo, opts):
                         break
                     # bitbucket path in schemes style (bb://name/repo)
                     elif parts[0].startswith('bb'):
-                        reponame = ('%s/%s' % parts[1:3]).strip('/')
+                        # parts[2] already starts with /
+                        reponame = ''.join(parts[1:3]).strip('/')
                         break
                 # bitbucket path in hgbb style (bb:name/repo)
                 elif path.startswith('bb:'):
