@@ -61,10 +61,9 @@ import os
 import urllib
 import urlparse
 
-from lxml.html import parse
+# utility functions
 
-
-def getusername(ui):
+def get_username(ui):
     """Return the bitbucket username or guess from the login name."""
     username = ui.config('bb', 'username', None)
     if username:
@@ -74,6 +73,34 @@ def getusername(ui):
     ui.status('using system user %r as username' % username)
     return username
 
+def get_bbreponame(ui, repo, opts):
+    reponame = opts.get('reponame')
+    constructed = False
+    if not reponame:
+        # try to guess from the "default" or "default-push" repository
+        paths = ui.configitems('paths')
+        for name, path in paths:
+            if name == 'default' or name == 'default-push':
+                if '://' in path:
+                    parts = urlparse.urlsplit(path)
+                    if parts[1].endswith('bitbucket.org'):
+                        reponame = parts[2].strip('/')
+                        break
+        else:
+            # guess from repository pathname
+            reponame = os.path.split(repo.root)[1]
+        constructed = True
+    if '/' not in reponame:
+        reponame = '%s/%s' % (get_username(ui), reponame)
+        constructed = True
+    # if we guessed or constructed the name, print it out for the user to avoid
+    # unwanted surprises
+    if constructed:
+        ui.status('using %r as repo name\n' % reponame)
+    return reponame
+
+
+# bb: schemes repository classes
 
 class bbrepo(object):
     """Short URL to clone from or push to bitbucket."""
@@ -86,7 +113,7 @@ class bbrepo(object):
         scheme, path = url.split(':', 1)
         if path.startswith('//'):
             path = path[2:]
-        username = getusername(ui)
+        username = get_username(ui)
         if '/' not in path:
             path = username + '/' + path
         password = ui.config('bb', 'password', None)
@@ -110,31 +137,10 @@ class auto_bbrepo(object):
         return hg.schemes['bb+' + method].instance(ui, url, create)
 
 
-def get_reponame(ui, repo, opts):
-    reponame = opts.get('reponame')
-    constructed = False
-    if not reponame:
-        # try to guess from the "default" or "default-push" repository
-        paths = ui.configitems('paths')
-        for name, path in paths:
-            if name == 'default' or name == 'default-push':
-                if '://' in path:
-                    parts = urlparse.urlsplit(path)
-                    if parts[1].endswith('bitbucket.org'):
-                        reponame = parts[2].strip('/')
-                        break
-        else:
-            # guess from repository pathname
-            reponame = os.path.split(repo.root)[1]
-        constructed = True
-    if '/' not in reponame:
-        reponame = '%s/%s' % (getusername(ui), reponame)
-        constructed = True
-    # if we guessed or constructed the name, print it out for the user to avoid
-    # unwanted surprises
-    if constructed:
-        ui.status('using %r as repo name\n' % reponame)
-    return reponame
+# new commands
+
+FULL_TMPL = '''\xff{rev}:{node|short} {date|shortdate} {author|user}: \
+{desc|firstline|strip}\n'''
 
 def bb_forks(ui, repo, **opts):
     '''list all forks of this repo at bitbucket
@@ -146,7 +152,11 @@ def bb_forks(ui, repo, **opts):
     ``-i -f`` options, also show the individual incoming changesets like
     :hg:`incoming` does.
     '''
-    reponame = get_reponame(ui, repo, opts)
+    try:
+        from lxml.html import parse
+    except ImportError:
+        raise util.Abort('lxml.html is (currently) needed to run bbforks')
+    reponame = get_bbreponame(ui, repo, opts)
     ui.status('getting descendants list\n')
     fp = urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame)
     if fp.getcode() != 200:
@@ -170,29 +180,29 @@ def bb_forks(ui, repo, **opts):
     forks = [(name, url) for (name, url) in forks if name not in ignore]
 
     if opts.get('incoming'):
-        templateopts = {}
-        if not opts.get('full'):
-            templateopts['template'] = '\xff'
+        templateopts = {'template': opts.get('full') and FULL_TMPL or '\xff'}
         for name, url in forks:
-            ui.status('looking at bb+http:%s\n' % name)
+            ui.status('looking at %s\n' % name)
             try:
-                if not opts.get('full'): ui.quiet = True
+                ui.quiet = True
                 ui.pushbuffer()
                 try:
-                    commands.incoming(ui, repo, url, bundle='', **templateopts)
+                    commands.incoming(ui, repo, url, bundle='',
+                                      newest_first=True, **templateopts)
                 finally:
                     ui.quiet = False
-                    contents = ui.popbuffer()
-            except error.RepoError, msg:
+                    contents = ui.popbuffer(True)
+            except (error.RepoError, util.Abort), msg:
                 ui.warn('Error: %s\n' % msg)
-            finally:
-                if contents:
-                    number = contents.count('\xff')
-                    if number:
-                        ui.status('%d incoming changeset%s found\n' %
-                                  (number, number > 1 and 's' or ''),
-                                  label='status.modified')
-                    ui.write(contents.replace('\xff', ''))
+            else:
+                if not contents:
+                    continue
+                number = contents.count('\xff')
+                if number:
+                    ui.status('%d incoming changeset%s found in bb+http:%s\n' %
+                              (number, number > 1 and 's' or '', name),
+                              label='status.modified')
+                ui.write(contents.replace('\xff', ''), label='log.changeset')
     else:
         for name, url in forks:
             ui.status('bb+http:%s\n' % name)
