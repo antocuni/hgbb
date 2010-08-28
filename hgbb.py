@@ -55,7 +55,6 @@ from mercurial import hg, commands, sshrepo, httprepo, util, error
 import os
 import urllib
 import urlparse
-from time import sleep
 
 from lxml.html import parse
 
@@ -106,7 +105,7 @@ class auto_bbrepo(object):
         return hg.schemes['bb+' + method].instance(ui, url, create)
 
 
-def bb_forks(ui, repo, **opts):
+def get_reponame(ui, repo, opts):
     reponame = opts.get('reponame')
     constructed = False
     if not reponame:
