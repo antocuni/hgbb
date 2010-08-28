@@ -139,6 +139,9 @@ def get_reponame(ui, repo, opts):
 def bb_forks(ui, repo, **opts):
     '''list all forks of this repo at bitbucket
 
+    An explicit bitbucket reponame (``username/repo``) can be given with the
+    ``-n`` option.
+
     With the ``-i`` option, check each fork for incoming changesets.  With the
     ``-i -f`` options, also show the individual incoming changesets like
     :hg:`incoming` does.
@@ -213,5 +216,5 @@ cmdtable = {
           ('i', 'incoming', None, 'look for incoming changesets'),
           ('f', 'full', None, 'show full incoming info'),
           ],
-         'hg bbforks [-n reponame]')
+         'hg bbforks [-i [-f]] [-n reponame]')
 }
