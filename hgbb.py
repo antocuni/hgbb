@@ -123,6 +123,9 @@ def get_reponame(ui, repo, opts):
         ui.status('using %r as repo name\n' % reponame)
     ui.status('getting descendants list\n')
     fp = urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame)
+    if fp.getcode() != 200:
+        raise util.Abort('getting bitbucket page failed with HTTP %s'
+                         % fp.getcode())
     try:
         tree = parse(fp)
     finally:
