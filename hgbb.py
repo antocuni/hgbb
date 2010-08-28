@@ -86,6 +86,12 @@ def get_bbreponame(ui, repo, opts):
                     if parts[1].endswith('bitbucket.org'):
                         reponame = parts[2].strip('/')
                         break
+                    if parts[0].startswith('bb'):
+                        reponame = ('%s/%s'% parts[1:3]).strip('/')
+                        break
+                if path.startswith('bb:'):
+                    reponame = path[3:]
+                    break
         else:
             # guess from repository pathname
             reponame = os.path.split(repo.root)[1]
