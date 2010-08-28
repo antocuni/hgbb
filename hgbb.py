@@ -1,53 +1,58 @@
 # -*- coding: utf-8 -*-
-"""
-    hgbb
-    ~~~~
+#
+# bitbucket.org mercurial extension
+#
+# Copyright (c) 2009, 2010 by Armin Ronacher, Georg Brandl.
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+# Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+"""convenient access to bitbucket.org repositories and features
 
-    This extension provides simple access to some bitbucket features such as
-    checkout via short URL schemes.
+This extension has two purposes:
 
-    Configuration values::
+- access bitbucket repositories via short URIs like ``bb:[name/]repo``
+- conveniently do several bitbucket.org operations on the command line
 
-        [bb]
-        username = your bitbucket username
-        password = your bitbucket http password for http (optional)
-        default_method = the default checkout method to use (http, ssh or https)
+Configuration::
 
-    Implemented URL Schemas:
+    [bb]
+    username = your bitbucket username
+    password = your bitbucket http password for http (otherwise you'll be asked)
+    default_method = the default checkout method to use (ssh, http or https)
 
-    bb:repo
-        clones your own "repo" repository, checkout via default method
+There is one additional configuration value that makes sense only in
+repository-specific configuration files::
 
-    bb:username/repo
-        clones the "repo" repository by username, checkout via default method
+    ignore_forks = comma-separated list of forks you'd like to ignore in bbforks
 
-    bb+http:repo
-        clones your own "repo" repository, checkout via http
+The forks are given by bitbucket repository names (``username/repo``).
 
-    bb+http:username/repo
-        clones the "repo" repository by username, checkout via http
+Implemented URL schemas, usable instead of ``http://bitbucket.org/...``:
 
-    bb+ssh:repo
-        clones your own "repo" repository, checkout via ssh
-
-    bb+ssh:username/repo
-        clones the "repo" repository by username, checkout via ssh
-
-    :copyright: 2009, 2010 by Armin Ronacher, Georg Brandl.
-    :license:
-        This program is free software; you can redistribute it and/or modify it
-        under the terms of the GNU General Public License as published by the
-        Free Software Foundation; either version 2 of the License, or (at your
-        option) any later version.
-
-        This program is distributed in the hope that it will be useful, but
-        WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-        General Public License for more details.
-
-        You should have received a copy of the GNU General Public License along
-        with this program; if not, write to the Free Software Foundation, Inc.,
-        51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+bb:repo
+    clones your own "repo" repository, checkout via default method
+bb:username/repo
+    clones the "repo" repository by username, checkout via default method
+bb+http:repo
+    clones your own "repo" repository, checkout via http
+bb+http:username/repo
+    clones the "repo" repository by username, checkout via http
+bb+ssh:repo
+    clones your own "repo" repository, checkout via ssh
+bb+ssh:username/repo
+    clones the "repo" repository by username, checkout via ssh
 """
 
 from mercurial import hg, commands, sshrepo, httprepo, util, error
