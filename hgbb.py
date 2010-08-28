@@ -114,13 +114,36 @@ def get_reponame(ui, repo, opts):
     reponame = opts.get('reponame')
     constructed = False
     if not reponame:
-        reponame = os.path.split(repo.root)[1]
+        # try to guess from the "default" or "default-push" repository
+        paths = ui.configitems('paths')
+        for name, path in paths:
+            if name == 'default' or name == 'default-push':
+                if '://' in path:
+                    parts = urlparse.urlsplit(path)
+                    if parts[1].endswith('bitbucket.org'):
+                        reponame = parts[2].strip('/')
+                        break
+        else:
+            # guess from repository pathname
+            reponame = os.path.split(repo.root)[1]
         constructed = True
     if '/' not in reponame:
         reponame = '%s/%s' % (getusername(ui), reponame)
         constructed = True
+    # if we guessed or constructed the name, print it out for the user to avoid
+    # unwanted surprises
     if constructed:
         ui.status('using %r as repo name\n' % reponame)
+    return reponame
+
+def bb_forks(ui, repo, **opts):
+    '''list all forks of this repo at bitbucket
+
+    With the ``-i`` option, check each fork for incoming changesets.  With the
+    ``-i -f`` options, also show the individual incoming changesets like
+    :hg:`incoming` does.
+    '''
+    reponame = get_reponame(ui, repo, opts)
     ui.status('getting descendants list\n')
     fp = urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame)
     if fp.getcode() != 200:
