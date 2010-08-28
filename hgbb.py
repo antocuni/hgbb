@@ -83,14 +83,20 @@ def get_bbreponame(ui, repo, opts):
             if name == 'default' or name == 'default-push':
                 if '://' in path:
                     parts = urlparse.urlsplit(path)
+                    # http or ssh full path
                     if parts[1].endswith('bitbucket.org'):
                         reponame = parts[2].strip('/')
                         break
-                    if parts[0].startswith('bb'):
-                        reponame = ('%s/%s'% parts[1:3]).strip('/')
+                    # bitbucket path in schemes style (bb://name/repo)
+                    elif parts[0].startswith('bb'):
+                        reponame = ('%s/%s' % parts[1:3]).strip('/')
                         break
-                if path.startswith('bb:'):
+                # bitbucket path in hgbb style (bb:name/repo)
+                elif path.startswith('bb:'):
                     reponame = path[3:]
+                    break
+                elif path.startswith('bb+') and ':' in path:
+                    reponame = path.split(':')[1]
                     break
         else:
             # guess from repository pathname
