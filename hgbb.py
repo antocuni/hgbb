@@ -191,7 +191,6 @@ def bb_forks(ui, repo, **opts):
     # filter out ignored forks
     ignore = set(ui.configlist('bb', 'ignore_forks'))
     forks = [name for name in forks if name not in ignore]
-    ui.warn(str(forks) + '\n')
 
     if opts.get('incoming'):
         templateopts = {'template': opts.get('full') and FULL_TMPL or '\xff'}
