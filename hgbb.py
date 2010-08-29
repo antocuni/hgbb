@@ -187,20 +187,21 @@ def bb_forks(ui, repo, **opts):
             return
     except Exception:
         raise util.Abort('scraping bitbucket page failed')
-    forks = [(urlparse.urlsplit(url)[2][1:], url) for url in urls]
+    forks = [urlparse.urlsplit(url)[2][1:] for url in urls]
     # filter out ignored forks
     ignore = set(ui.configlist('bb', 'ignore_forks'))
-    forks = [(name, url) for (name, url) in forks if name not in ignore]
+    forks = [name for name in forks if name not in ignore]
+    ui.warn(str(forks) + '\n')
 
     if opts.get('incoming'):
         templateopts = {'template': opts.get('full') and FULL_TMPL or '\xff'}
-        for name, url in forks:
+        for name in forks:
             ui.status('looking at %s\n' % name)
             try:
                 ui.quiet = True
                 ui.pushbuffer()
                 try:
-                    commands.incoming(ui, repo, url, bundle='',
+                    commands.incoming(ui, repo, 'bb://' + name, bundle='',
                                       newest_first=True, **templateopts)
                 finally:
                     ui.quiet = False
@@ -217,8 +218,8 @@ def bb_forks(ui, repo, **opts):
                               label='status.modified')
                 ui.write(contents.replace('\xff', ''), label='log.changeset')
     else:
-        for name, url in forks:
-            ui.status('bb+http:%s\n' % name)
+        for name in forks:
+            ui.status('bb:%s\n' % name)
             #json = urllib.urlopen(
             #    'http://api.bitbucket.org/1.0/repositories/%s/' % name).read()
 
