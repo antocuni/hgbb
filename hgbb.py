@@ -25,6 +25,9 @@ This extension has two purposes:
 - access bitbucket repositories via short URIs like ``bb:[name/]repo``
 - conveniently do several bitbucket.org operations on the command line
 
+The ``lxml`` module is required for operations that need to scrape pages
+from bitbucket.org (currently bbforks).
+
 Configuration::
 
     [bb]
