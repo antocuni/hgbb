@@ -44,18 +44,22 @@ The forks are given by bitbucket repository names (``username/repo``).
 
 Implemented URL schemas, usable instead of ``http://bitbucket.org/...``:
 
-bb:repo
+bb://repo
     clones your own "repo" repository, checkout via default method
-bb:username/repo
+bb://username/repo
     clones the "repo" repository by username, checkout via default method
-bb+http:repo
+bb+http://repo
     clones your own "repo" repository, checkout via http
-bb+http:username/repo
+bb+http://username/repo
     clones the "repo" repository by username, checkout via http
-bb+ssh:repo
+bb+ssh://repo
     clones your own "repo" repository, checkout via ssh
-bb+ssh:username/repo
+bb+ssh://username/repo
     clones the "repo" repository by username, checkout via ssh
+
+Note: you can omit the two slashes (e.g. ``bb:user/repo``) when using the
+URL on the command line.  It will *not* work when put into the [paths]
+entry in hgrc.
 """
 
 from mercurial import hg, commands, sshrepo, httprepo, util, error
