@@ -219,13 +219,13 @@ def bb_forks(ui, repo, **opts):
                     continue
                 number = contents.count('\xff')
                 if number:
-                    ui.status('%d incoming changeset%s found in bb+http:%s\n' %
+                    ui.status('%d incoming changeset%s found in bb+http://%s\n' %
                               (number, number > 1 and 's' or '', name),
                               label='status.modified')
                 ui.write(contents.replace('\xff', ''), label='log.changeset')
     else:
         for name in forks:
-            ui.status('bb:%s\n' % name)
+            ui.status('bb://%s\n' % name)
             #json = urllib.urlopen(
             #    'http://api.bitbucket.org/1.0/repositories/%s/' % name).read()
 
