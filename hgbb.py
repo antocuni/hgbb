@@ -62,7 +62,7 @@ URL on the command line.  It will *not* work when put into the [paths]
 entry in hgrc.
 """
 
-from mercurial import hg, commands, sshrepo, httprepo, util, error
+from mercurial import hg, commands, sshrepo, httprepo, util, error, extensions
 
 import os
 import urllib
@@ -228,6 +228,17 @@ def bb_forks(ui, repo, **opts):
             ui.status('bb://%s\n' % name)
             #json = urllib.urlopen(
             #    'http://api.bitbucket.org/1.0/repositories/%s/' % name).read()
+
+
+def clone(orig, ui, source, dest=None, **opts):
+    if source[:3] == 'bb:' and source[3:5] != '//':
+        ui.status('replacing bb: shortcut with bb://%s\n'%source[3:])
+        source = 'bb://' + source[3:]
+
+    return orig(ui, source, dest, **opts)
+
+def uisetup(ui):
+    extensions.wrapcommand(commands.table, 'clone', clone)
 
 
 hg.schemes['bb'] = auto_bbrepo()
