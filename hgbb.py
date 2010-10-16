@@ -159,6 +159,34 @@ class auto_bbrepo(object):
         return hg.schemes['bb+' + method].instance(ui, url, create)
 
 
+def list_forks(ui, reponame):
+    try:
+        from lxml.html import parse
+    except ImportError:
+        raise util.Abort('lxml.html is (currently) needed to run bbforks')
+
+    ui.status('getting descendants list\n')
+
+    try:
+        tree = parse('http://bitbucket.org/%s/descendants' % reponame)
+    except IOError, e:
+        raise util.Abort('getting bitbucket page failed with:\n%s' % e)
+
+    try:
+        forklist = tree.findall('//div[@class="repos-all"]')[1]
+        urls = [a.attrib['href'] for a in forklist.findall('div/a')]
+
+        if len(urls) == 1 and urls[0].endswith(reponame + '/overview'):
+            ui.status('this repository has no forks yet\n')
+            return
+    except Exception, e:
+        raise util.Abort('scraping bitbucket page failed:\n')
+
+    forks = [urlparse.urlsplit(url)[2][1:] for url in urls]
+
+    return forks
+
+
 # new commands
 
 FULL_TMPL = '''\xff{rev}:{node|short} {date|shortdate} {author|user}: \
@@ -174,29 +202,11 @@ def bb_forks(ui, repo, **opts):
     ``-i -f`` options, also show the individual incoming changesets like
     :hg:`incoming` does.
     '''
-    try:
-        from lxml.html import parse
-    except ImportError:
-        raise util.Abort('lxml.html is (currently) needed to run bbforks')
+
     reponame = get_bbreponame(ui, repo, opts)
-    ui.status('getting descendants list\n')
-    fp = urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame)
-    if fp.getcode() != 200:
-        raise util.Abort('getting bitbucket page failed with HTTP %s'
-                         % fp.getcode())
-    try:
-        tree = parse(fp)
-    finally:
-        fp.close()
-    try:
-        forklist = tree.findall('//div[@class="repos-all"]')[1]
-        urls = [a.attrib['href'] for a in forklist.findall('div/a')]
-        if len(urls) == 1 and urls[0].endswith(reponame + '/overview'):
-            ui.status('this repository has no forks yet\n')
-            return
-    except Exception:
-        raise util.Abort('scraping bitbucket page failed')
-    forks = [urlparse.urlsplit(url)[2][1:] for url in urls]
+    forks = list_forks(ui, reponame)
+    if forks is None:
+        return
     # filter out ignored forks
     ignore = set(ui.configlist('bb', 'ignore_forks'))
     forks = [name for name in forks if name not in ignore]

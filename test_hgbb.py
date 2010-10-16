@@ -2,6 +2,7 @@ import py
 from mock import Mock, MagicMock
 
 import getpass
+import urllib
 
 import hgbb
 from hgbb import parse_repopath
@@ -10,7 +11,11 @@ from mercurial import extensions, commands, hg, util
 
 
 def pytest_funcarg__ui(request):
-    return Mock(name='ui')
+    mock_ui = Mock(name='ui')
+    def printstatus(status):
+        print status[:-1] # strip hg ui newlines, evil
+    mock_ui.status.side_effect = printstatus
+    return mock_ui
 
 
 def pytest_generate_tests(metafunc):
@@ -139,4 +144,60 @@ def test_bbrepo(ui):
     password = 'evil'
     maker.instance(ui, 'bb:test', False)
     ui.assert_called_with(ui, 'testuser:evil@testuser/test/', False)
+
+
+# bb will have a single link to the repo overview in case of lack of forks
+example_bbforks_page_no_forks = """
+<body>
+    <div class="repos-all">
+        queues are unintresting
+    </div>
+    <div class="repos-all">
+        <div><a href="testrepo/overview">no forks here</a></div>
+    </div>
+</body>
+"""
+
+
+def test_list_forks_no_forks(monkeypatch, ui):
+    import lxml.html
+    parse = Mock()
+    io = py.io.BytesIO(example_bbforks_page_no_forks)
+    parse.return_value = lxml.html.parse(io)
+    monkeypatch.setattr(lxml.etree, 'parse', parse)
+    repos = hgbb.list_forks(ui, 'testrepo')
+    assert repos is None
+
+example_bbforks_page_with_forks = """
+<body>
+    <div class="repos-all">
+        queues are unintresting
+    </div>
+    <div class="repos-all">
+        <div>
+            <span><a href="http://bb/testrepo">ignore me</a></span>
+            <a href="http://bb/testrepo">real one</a></div>
+        <div><a href="http://bb.org/special/repo">real one</a></div>
+    </div>
+</body>
+"""
+
+
+def test_list_forks_with_forks(monkeypatch, ui):
+    import lxml.html
+    parse = Mock()
+    io = py.io.BytesIO(example_bbforks_page_with_forks)
+    parse.return_value = lxml.html.parse(io)
+    monkeypatch.setattr(lxml.html, 'parse', parse)
+    repos = hgbb.list_forks(ui, 'testrepo')
+    print repos
+    assert repos == ['testrepo', 'special/repo']
+
+
+def test_list_forks_failes(monkeypatch, ui):
+    import lxml.html
+    parse = Mock()
+    parse.side_effect = IOError('example failure')
+    monkeypatch.setattr(lxml.html, 'parse', parse)
+    py.test.raises(util.Abort, hgbb.list_forks, ui, 'testrepo')
 
