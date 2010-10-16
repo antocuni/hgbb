@@ -80,6 +80,23 @@ def get_username(ui):
     ui.status('using system user %r as username' % username)
     return username
 
+def parse_repopath(path):
+    if '://' in path:
+        parts = urlparse.urlsplit(path)
+        # http or ssh full path
+        if parts[1].endswith('bitbucket.org'):
+            return parts[2].strip('/')
+        # bitbucket path in schemes style (bb://name/repo)
+        elif parts[0].startswith('bb'):
+            # parts[2] already starts with /
+            return ''.join(parts[1:3]).strip('/')
+    # bitbucket path in hgbb style (bb:name/repo)
+    elif path.startswith('bb:'):
+        return path[3:]
+    elif path.startswith('bb+') and ':' in path:
+        return path.split(':')[1]
+
+
 def get_bbreponame(ui, repo, opts):
     reponame = opts.get('reponame')
     constructed = False
@@ -88,23 +105,8 @@ def get_bbreponame(ui, repo, opts):
         paths = ui.configitems('paths')
         for name, path in paths:
             if name == 'default' or name == 'default-push':
-                if '://' in path:
-                    parts = urlparse.urlsplit(path)
-                    # http or ssh full path
-                    if parts[1].endswith('bitbucket.org'):
-                        reponame = parts[2].strip('/')
-                        break
-                    # bitbucket path in schemes style (bb://name/repo)
-                    elif parts[0].startswith('bb'):
-                        # parts[2] already starts with /
-                        reponame = ''.join(parts[1:3]).strip('/')
-                        break
-                # bitbucket path in hgbb style (bb:name/repo)
-                elif path.startswith('bb:'):
-                    reponame = path[3:]
-                    break
-                elif path.startswith('bb+') and ':' in path:
-                    reponame = path.split(':')[1]
+                reponame = parse_repopath(path)
+                if reponame:
                     break
         else:
             # guess from repository pathname
