@@ -116,3 +116,27 @@ def test_auto_bbrepo(monkeypatch, ui):
     ui.config.return_value = 'unknown'
 
     py.test.raises(util.Abort, auto.instance, ui, 'test', False)
+
+
+def test_bbrepo(ui):
+    password = None
+    def ui_config(section, name, default):
+        if name == 'username':
+            return 'testuser'
+        return password
+
+    ui.config.side_effect = ui_config
+
+
+    maker = hgbb.bbrepo(ui, '%(auth)s%(path)s')
+
+    maker.instance(ui, 'bb:test', False)
+    ui.assert_called_with(ui, 'testuser@testuser/test/', False)
+
+    maker.instance(ui, 'bb+something:other/test', False)
+    ui.assert_called_with(ui, 'testuser@other/test/', False)
+    
+    password = 'evil'
+    maker.instance(ui, 'bb:test', False)
+    ui.assert_called_with(ui, 'testuser:evil@testuser/test/', False)
+
