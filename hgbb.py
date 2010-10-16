@@ -243,9 +243,11 @@ def bb_forks(ui, repo, **opts):
 
 
 def clone(orig, ui, source, dest=None, **opts):
-    if source[:3] == 'bb:' and source[3:5] != '//':
-        ui.status('replacing bb: shortcut with bb://%s\n'%source[3:])
-        source = 'bb://' + source[3:]
+
+    if source[:2] == 'bb' and ':' in source:
+        protocol, rest = source.split(':', 1)
+        if rest[:2] != '//':
+            source = '%s://%s' % (protocol, rest)
 
     return orig(ui, source, dest, **opts)
 

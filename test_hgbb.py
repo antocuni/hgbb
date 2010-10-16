@@ -99,6 +99,11 @@ def test_clone_wrapper_path_mapping(ui):
     hgbb.clone(mock, ui, 'bb://test')
     #                       ui,   source,      dest
     mock.assert_called_with(ui, 'bb://test', None)
+    
+    mock.reset_mock()
+    hgbb.clone(mock, ui, 'bb+something:test')
+    #                       ui,   source,      dest
+    mock.assert_called_with(ui, 'bb+something://test', None)
 
 
 def test_uisetup(monkeypatch, ui):
