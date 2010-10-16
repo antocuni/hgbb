@@ -245,7 +245,7 @@ def uisetup(ui):
 
 hg.schemes['bb'] = auto_bbrepo()
 hg.schemes['bb+http'] = bbrepo(
-    httprepo.instance, 'http://%(auth)sbitbucket.org/%(path)s')
+    httprepo.instance, 'http://bitbucket.org/%(path)s')
 hg.schemes['bb+https'] = bbrepo(
     httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
 hg.schemes['bb+ssh'] = bbrepo(
