@@ -1,8 +1,12 @@
+import py
+from mock import Mock, MagicMock
+
+import getpass
+
 import hgbb
 from hgbb import parse_repopath
-from mercurial import extensions, commands
-from mock import Mock
-import getpass
+
+from mercurial import extensions, commands, hg, util
 
 
 def pytest_funcarg__ui(request):
@@ -97,3 +101,18 @@ def test_uisetup(monkeypatch, ui):
     monkeypatch.setattr(extensions, 'wrapcommand', mock)
     hgbb.uisetup(ui)
     mock.assert_called_with(commands.table, 'clone', hgbb.clone)
+
+
+def test_auto_bbrepo(monkeypatch, ui):
+    schemes = MagicMock(name='schemes')
+    monkeypatch.setattr(hg, 'schemes', schemes)
+    ui.config.return_value = 'ssh'
+
+    auto = hgbb.auto_bbrepo()
+
+    auto.instance(ui, 'test', False)
+    schemes['bb+ssh'].instance.assert_called_with(ui, 'test', False)
+
+    ui.config.return_value = 'unknown'
+
+    py.test.raises(util.Abort, auto.instance, ui, 'test', False)
