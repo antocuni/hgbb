@@ -12,8 +12,8 @@ from mercurial import extensions, commands, hg, util
 
 def pytest_funcarg__ui(request):
     mock_ui = Mock(name='ui')
-    def printstatus(status):
-        print status[:-1] # strip hg ui newlines, evil
+    def printstatus(status, **kw):
+        print status[:-1], kw # strip hg ui newlines, evil
     mock_ui.status.side_effect = printstatus
     return mock_ui
 
@@ -205,4 +205,37 @@ def test_list_forks_failes(monkeypatch):
     parse.side_effect = IOError('example failure')
     monkeypatch.setattr(lxml.html, 'parse', parse)
     py.test.raises(util.Abort, hgbb.list_forks, 'testrepo')
+
+
+def test_bbforks_no_forks(monkeypatch, ui):
+    list_forks = Mock(return_value=None)
+    incoming = Mock(name='incoming', spec=commands.incoming)
+    reponame = Mock(return_value = [])
+    monkeypatch.setattr(hgbb, 'list_forks', list_forks)
+    monkeypatch.setattr(hgbb, 'get_bbreponame', reponame)
+    monkeypatch.setattr(commands, 'incoming', incoming)
+    hgbb.bb_forks(ui, None)
+    hgbb.bb_forks(ui, None, incoming=True)
+
+    assert not incoming.called
+
+def test_bbforks_some_forks(monkeypatch, ui):
+    def configlist(section, key):
+        if key=='ignore_forks':
+            return ['some']
+    ui.configlist.side_effect = configlist
+    ui.popbuffer.return_value = '\xff'
+
+    list_forks = Mock(return_value=['some', 'other', 'moar'])
+    incoming = Mock(name='incoming', spec=commands.incoming)
+    reponame = Mock(return_value=[])
+    monkeypatch.setattr(hgbb, 'list_forks', list_forks)
+    monkeypatch.setattr(hgbb, 'get_bbreponame', reponame)
+    monkeypatch.setattr(commands, 'incoming', incoming)
+
+    hgbb.bb_forks(ui, None)
+    hgbb.bb_forks(ui, None, incoming=True)
+
+    assert incoming.call_count==2
+
 
