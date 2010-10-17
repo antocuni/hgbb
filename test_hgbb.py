@@ -164,13 +164,13 @@ example_bbforks_page_no_forks = """
 """
 
 
-def test_list_forks_no_forks(monkeypatch, ui):
+def test_list_forks_no_forks(monkeypatch):
     import lxml.html
     parse = Mock()
     io = py.io.BytesIO(example_bbforks_page_no_forks)
     parse.return_value = lxml.html.parse(io)
     monkeypatch.setattr(lxml.etree, 'parse', parse)
-    repos = hgbb.list_forks(ui, 'testrepo')
+    repos = hgbb.list_forks('testrepo')
     assert repos is None
 
 example_bbforks_page_with_forks = """
@@ -188,21 +188,21 @@ example_bbforks_page_with_forks = """
 """
 
 
-def test_list_forks_with_forks(monkeypatch, ui):
+def test_list_forks_with_forks(monkeypatch):
     import lxml.html
     parse = Mock()
     io = py.io.BytesIO(example_bbforks_page_with_forks)
     parse.return_value = lxml.html.parse(io)
     monkeypatch.setattr(lxml.html, 'parse', parse)
-    repos = hgbb.list_forks(ui, 'testrepo')
+    repos = hgbb.list_forks('testrepo')
     print repos
     assert repos == ['testrepo', 'special/repo']
 
 
-def test_list_forks_failes(monkeypatch, ui):
+def test_list_forks_failes(monkeypatch):
     import lxml.html
     parse = Mock()
     parse.side_effect = IOError('example failure')
     monkeypatch.setattr(lxml.html, 'parse', parse)
-    py.test.raises(util.Abort, hgbb.list_forks, ui, 'testrepo')
+    py.test.raises(util.Abort, hgbb.list_forks, 'testrepo')
 

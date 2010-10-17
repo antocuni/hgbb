@@ -159,13 +159,12 @@ class auto_bbrepo(object):
         return hg.schemes['bb+' + method].instance(ui, url, create)
 
 
-def list_forks(ui, reponame):
+def list_forks(reponame):
     try:
         from lxml.html import parse
     except ImportError:
         raise util.Abort('lxml.html is (currently) needed to run bbforks')
 
-    ui.status('getting descendants list\n')
 
     try:
         tree = parse('http://bitbucket.org/%s/descendants' % reponame)
@@ -177,7 +176,6 @@ def list_forks(ui, reponame):
         urls = [a.attrib['href'] for a in forklist.findall('div/a')]
 
         if len(urls) == 1 and urls[0].endswith(reponame + '/overview'):
-            ui.status('this repository has no forks yet\n')
             return
     except Exception, e:
         raise util.Abort('scraping bitbucket page failed:\n')
@@ -204,8 +202,10 @@ def bb_forks(ui, repo, **opts):
     '''
 
     reponame = get_bbreponame(ui, repo, opts)
-    forks = list_forks(ui, reponame)
+    ui.status('getting descendants list\n')
+    forks = list_forks(reponame)
     if forks is None:
+        ui.status('this repository has no forks yet\n')
         return
     # filter out ignored forks
     ignore = set(ui.configlist('bb', 'ignore_forks'))
