@@ -172,10 +172,10 @@ def list_forks(reponame):
         raise util.Abort('getting bitbucket page failed with:\n%s' % e)
 
     try:
-        forklist = tree.findall('//div[@class="repos-all"]')[1]
+        forklist = tree.findall('//div[@class="onecol-info"]')[1]
         urls = [a.attrib['href'] for a in forklist.findall('div/a')]
 
-        if len(urls) == 1 and urls[0].endswith(reponame + '/overview'):
+        if len(urls) == 1 and urls[0].endswith(reponame):
             return
     except Exception, e:
         raise util.Abort('scraping bitbucket page failed:\n')

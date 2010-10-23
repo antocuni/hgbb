@@ -154,11 +154,11 @@ def test_bbrepo(ui):
 # bb will have a single link to the repo overview in case of lack of forks
 example_bbforks_page_no_forks = """
 <body>
-    <div class="repos-all">
+    <div class="onecol-info">
         queues are unintresting
     </div>
-    <div class="repos-all">
-        <div><a href="testrepo/overview">no forks here</a></div>
+    <div class="onecol-info">
+        <div><a href="testrepo">no forks here</a></div>
     </div>
 </body>
 """
@@ -175,10 +175,10 @@ def test_list_forks_no_forks(monkeypatch):
 
 example_bbforks_page_with_forks = """
 <body>
-    <div class="repos-all">
+    <div class="onecol-info">
         queues are unintresting
     </div>
-    <div class="repos-all">
+    <div class="onecol-info">
         <div>
             <span><a href="http://bb/testrepo">ignore me</a></span>
             <a href="http://bb/testrepo">real one</a></div>
