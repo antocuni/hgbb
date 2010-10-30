@@ -187,9 +187,10 @@ def bb_forks(ui, repo, **opts):
     finally:
         fp.close()
     try:
-        forklist = tree.findall('//div[@class="repos-all"]')[1]
-        urls = [a.attrib['href'] for a in forklist.findall('div/a')]
-        if len(urls) == 1 and urls[0].endswith(reponame + '/overview'):
+        forklist = tree.findall('//div[@class="forks pane"]')[0]
+        urls = [a.attrib['href'][:-9] for a in forklist.findall('ol/li/span/a')
+                if a.attrib['href'].endswith('/overview')]
+        if not urls:
             ui.status('this repository has no forks yet\n')
             return
     except Exception:
