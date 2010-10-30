@@ -62,7 +62,7 @@ URL on the command line.  It will *not* work when put into the [paths]
 entry in hgrc.
 """
 
-from mercurial import hg, commands, sshrepo, httprepo, util, error
+from mercurial import hg, commands, sshrepo, httprepo, util, error, extensions
 
 import os
 import urllib
@@ -80,6 +80,23 @@ def get_username(ui):
     ui.status('using system user %r as username' % username)
     return username
 
+def parse_repopath(path):
+    if '://' in path:
+        parts = urlparse.urlsplit(path)
+        # http or ssh full path
+        if parts[1].endswith('bitbucket.org'):
+            return parts[2].strip('/')
+        # bitbucket path in schemes style (bb://name/repo)
+        elif parts[0].startswith('bb'):
+            # parts[2] already starts with /
+            return ''.join(parts[1:3]).strip('/')
+    # bitbucket path in hgbb style (bb:name/repo)
+    elif path.startswith('bb:'):
+        return path[3:]
+    elif path.startswith('bb+') and ':' in path:
+        return path.split(':')[1]
+
+
 def get_bbreponame(ui, repo, opts):
     reponame = opts.get('reponame')
     constructed = False
@@ -88,23 +105,8 @@ def get_bbreponame(ui, repo, opts):
         paths = ui.configitems('paths')
         for name, path in paths:
             if name == 'default' or name == 'default-push':
-                if '://' in path:
-                    parts = urlparse.urlsplit(path)
-                    # http or ssh full path
-                    if parts[1].endswith('bitbucket.org'):
-                        reponame = parts[2].strip('/')
-                        break
-                    # bitbucket path in schemes style (bb://name/repo)
-                    elif parts[0].startswith('bb'):
-                        # parts[2] already starts with /
-                        reponame = ''.join(parts[1:3]).strip('/')
-                        break
-                # bitbucket path in hgbb style (bb:name/repo)
-                elif path.startswith('bb:'):
-                    reponame = path[3:]
-                    break
-                elif path.startswith('bb+') and ':' in path:
-                    reponame = path.split(':')[1]
+                reponame = parse_repopath(path)
+                if reponame:
                     break
         else:
             # guess from repository pathname
@@ -157,6 +159,31 @@ class auto_bbrepo(object):
         return hg.schemes['bb+' + method].instance(ui, url, create)
 
 
+def list_forks(reponame):
+    try:
+        from lxml.html import parse
+    except ImportError:
+        raise util.Abort('lxml.html is (currently) needed to run bbforks')
+
+    try:
+        tree = parse('http://bitbucket.org/%s/descendants' % reponame)
+    except IOError, e:
+        raise util.Abort('getting bitbucket page failed with:\n%s' % e)
+
+    try:
+        forklist = tree.findall('//div[@class="forks pane"]')[0]
+        urls = [a.attrib['href'][:-9] for a in forklist.findall('ol/li/span/a')
+                if a.attrib['href'].endswith('/overview')]
+        if not urls:
+            ui.status('this repository has no forks yet\n')
+            return
+    except Exception, e:
+        raise util.Abort('scraping bitbucket page failed:\n' + str(e))
+
+    forks = [urlparse.urlsplit(url)[2][1:] for url in urls]
+    return forks
+
+
 # new commands
 
 FULL_TMPL = '''\xff{rev}:{node|short} {date|shortdate} {author|user}: \
@@ -172,30 +199,13 @@ def bb_forks(ui, repo, **opts):
     ``-i -f`` options, also show the individual incoming changesets like
     :hg:`incoming` does.
     '''
-    try:
-        from lxml.html import parse
-    except ImportError:
-        raise util.Abort('lxml.html is (currently) needed to run bbforks')
+
     reponame = get_bbreponame(ui, repo, opts)
     ui.status('getting descendants list\n')
-    fp = urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame)
-    if fp.getcode() != 200:
-        raise util.Abort('getting bitbucket page failed with HTTP %s'
-                         % fp.getcode())
-    try:
-        tree = parse(fp)
-    finally:
-        fp.close()
-    try:
-        forklist = tree.findall('//div[@class="forks pane"]')[0]
-        urls = [a.attrib['href'][:-9] for a in forklist.findall('ol/li/span/a')
-                if a.attrib['href'].endswith('/overview')]
-        if not urls:
-            ui.status('this repository has no forks yet\n')
-            return
-    except Exception:
-        raise util.Abort('scraping bitbucket page failed')
-    forks = [urlparse.urlsplit(url)[2][1:] for url in urls]
+    forks = list_forks(reponame)
+    if forks is None:
+        ui.status('this repository has no forks yet\n')
+        return
     # filter out ignored forks
     ignore = set(ui.configlist('bb', 'ignore_forks'))
     forks = [name for name in forks if name not in ignore]
@@ -220,20 +230,33 @@ def bb_forks(ui, repo, **opts):
                     continue
                 number = contents.count('\xff')
                 if number:
-                    ui.status('%d incoming changeset%s found in bb+http:%s\n' %
+                    ui.status('%d incoming changeset%s found in bb+http://%s\n' %
                               (number, number > 1 and 's' or '', name),
                               label='status.modified')
                 ui.write(contents.replace('\xff', ''), label='log.changeset')
     else:
         for name in forks:
-            ui.status('bb:%s\n' % name)
+            ui.status('bb://%s\n' % name)
             #json = urllib.urlopen(
             #    'http://api.bitbucket.org/1.0/repositories/%s/' % name).read()
 
 
+def clone(orig, ui, source, dest=None, **opts):
+
+    if source[:2] == 'bb' and ':' in source:
+        protocol, rest = source.split(':', 1)
+        if rest[:2] != '//':
+            source = '%s://%s' % (protocol, rest)
+
+    return orig(ui, source, dest, **opts)
+
+def uisetup(ui):
+    extensions.wrapcommand(commands.table, 'clone', clone)
+
+
 hg.schemes['bb'] = auto_bbrepo()
 hg.schemes['bb+http'] = bbrepo(
-    httprepo.instance, 'http://%(auth)sbitbucket.org/%(path)s')
+    httprepo.instance, 'http://bitbucket.org/%(path)s')
 hg.schemes['bb+https'] = bbrepo(
     httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
 hg.schemes['bb+ssh'] = bbrepo(
