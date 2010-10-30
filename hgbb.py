@@ -175,8 +175,7 @@ def list_forks(reponame):
         urls = [a.attrib['href'][:-9] for a in forklist.findall('ol/li/span/a')
                 if a.attrib['href'].endswith('/overview')]
         if not urls:
-            ui.status('this repository has no forks yet\n')
-            return
+            return []
     except Exception, e:
         raise util.Abort('scraping bitbucket page failed:\n' + str(e))
 
@@ -203,7 +202,7 @@ def bb_forks(ui, repo, **opts):
     reponame = get_bbreponame(ui, repo, opts)
     ui.status('getting descendants list\n')
     forks = list_forks(reponame)
-    if forks is None:
+    if not forks:
         ui.status('this repository has no forks yet\n')
         return
     # filter out ignored forks
