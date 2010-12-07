@@ -153,14 +153,9 @@ def test_bbrepo(ui):
 
 # bb will have a single link to the repo overview in case of lack of forks
 example_bbforks_page_no_forks = """
-<body>
-    <div class="onecol-info">
-        queues are unintresting
-    </div>
-    <div class="onecol-info">
-        <div><a href="testrepo">no forks here</a></div>
-    </div>
-</body>
+<div class="forks pane">
+    <ol><li><span><a href="testrepo">no forks here</a></span></li></ol>
+</div>
 """
 
 
@@ -171,18 +166,17 @@ def test_list_forks_no_forks(monkeypatch):
     parse.return_value = lxml.html.parse(io)
     monkeypatch.setattr(lxml.etree, 'parse', parse)
     repos = hgbb.list_forks('testrepo')
-    assert repos is None
+    assert not repos
 
 example_bbforks_page_with_forks = """
 <body>
-    <div class="onecol-info">
-        queues are unintresting
-    </div>
-    <div class="onecol-info">
-        <div>
-            <span><a href="http://bb/testrepo">ignore me</a></span>
-            <a href="http://bb/testrepo">real one</a></div>
-        <div><a href="http://bb.org/special/repo">real one</a></div>
+    <div class="forks pane">
+        <ol>
+            <li>
+                <span><a href="/special">special</a> / <a href="/special/testrepo/overview">ow</a></span><br />
+                <a href="https://bitbucket.org/special/testrepo"> </a>
+            </li>
+        </ol>
     </div>
 </body>
 """
@@ -196,7 +190,7 @@ def test_list_forks_with_forks(monkeypatch):
     monkeypatch.setattr(lxml.html, 'parse', parse)
     repos = hgbb.list_forks('testrepo')
     print repos
-    assert repos == ['testrepo', 'special/repo']
+    assert repos == ['special/testrepo']
 
 
 def test_list_forks_failes(monkeypatch):
