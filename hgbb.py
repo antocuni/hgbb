@@ -166,7 +166,7 @@ def list_forks(reponame):
         raise util.Abort('lxml.html is (currently) needed to run bbforks')
 
     try:
-        tree = parse('http://bitbucket.org/%s/descendants' % reponame)
+        tree = parse(urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame))
     except IOError, e:
         raise util.Abort('getting bitbucket page failed with:\n%s' % e)
 
