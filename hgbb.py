@@ -33,7 +33,7 @@ Configuration::
     [bb]
     username = your bitbucket username
     password = your bitbucket http password for http (otherwise you'll be asked)
-    default_method = the default checkout method to use (ssh, http or https)
+    default_method = the default checkout method to use (ssh or http)
 
 There is one additional configuration value that makes sense only in
 repository-specific configuration files::
@@ -42,7 +42,7 @@ repository-specific configuration files::
 
 The forks are given by bitbucket repository names (``username/repo``).
 
-Implemented URL schemas, usable instead of ``http://bitbucket.org/...``:
+Implemented URL schemas, usable instead of ``https://bitbucket.org/...``:
 
 bb://repo
     clones your own "repo" repository, checkout via default method
@@ -156,6 +156,8 @@ class auto_bbrepo(object):
         if method not in ('ssh', 'http', 'https'):
             raise util.Abort('Invalid config value for bb.default_method: %s'
                              % method)
+        if method == 'http':
+            method = 'https'
         return hg.schemes['bb+' + method].instance(ui, url, create)
 
 
@@ -229,7 +231,7 @@ def bb_forks(ui, repo, **opts):
                     continue
                 number = contents.count('\xff')
                 if number:
-                    ui.status('%d incoming changeset%s found in bb+http://%s\n' %
+                    ui.status('%d incoming changeset%s found in bb://%s\n' %
                               (number, number > 1 and 's' or '', name),
                               label='status.modified')
                 ui.write(contents.replace('\xff', ''), label='log.changeset')
@@ -255,7 +257,7 @@ def uisetup(ui):
 
 hg.schemes['bb'] = auto_bbrepo()
 hg.schemes['bb+http'] = bbrepo(
-    httprepo.instance, 'http://bitbucket.org/%(path)s')
+    httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
 hg.schemes['bb+https'] = bbrepo(
     httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
 hg.schemes['bb+ssh'] = bbrepo(
