@@ -220,7 +220,8 @@ def bb_forks(ui, repo, **opts):
                 ui.pushbuffer()
                 try:
                     commands.incoming(ui, repo, 'bb://' + name, bundle='',
-                                      newest_first=True, **templateopts)
+                                      force=False, newest_first=True,
+                                      **templateopts)
                 finally:
                     ui.quiet = False
                     contents = ui.popbuffer(True)
