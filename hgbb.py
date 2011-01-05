@@ -2,7 +2,7 @@
 #
 # bitbucket.org mercurial extension
 #
-# Copyright (c) 2009, 2010 by Armin Ronacher, Georg Brandl.
+# Copyright (c) 2009, 2010, 2011 by Armin Ronacher, Georg Brandl.
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -166,7 +166,7 @@ def list_forks(reponame):
         raise util.Abort('lxml.html is (currently) needed to run bbforks')
 
     try:
-        tree = parse(urllib.urlopen('http://bitbucket.org/%s/descendants' % reponame))
+        tree = parse(urllib.urlopen('https://bitbucket.org/%s/descendants/' % reponame))
     except IOError, e:
         raise util.Abort('getting bitbucket page failed with:\n%s' % e)
 
