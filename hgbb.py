@@ -62,10 +62,13 @@ URL on the command line.  It will *not* work when put into the [paths]
 entry in hgrc.
 """
 
-from mercurial import hg, commands, sshrepo, httprepo, util, error, extensions
+from mercurial import hg, url, commands, sshrepo, httprepo, util, \
+     error, extensions
 
 import os
+import base64
 import urllib
+import urllib2
 import urlparse
 
 # utility functions
@@ -242,14 +245,38 @@ def bb_forks(ui, repo, **opts):
             #json = urllib.urlopen(
             #    'http://api.bitbucket.org/1.0/repositories/%s/' % name).read()
 
+def _bb_apicall(ui, endpoint, data):
+    uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
+    # since bitbucket doesn't return the required WWW-Authenticate header when
+    # making a request without Authorization, we cannot use the standard urllib2
+    # auth handlers; we have to add the requisite header from the start
+    req = urllib2.Request(uri, urllib.urlencode(data))
+    # at least re-use Mercurial's password query
+    passmgr = url.passwordmgr(ui)
+    passmgr.add_password(None, uri, get_username(ui), '')
+    upw = '%s:%s' % passmgr.find_user_password(None, uri)
+    req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
+    return urllib2.urlopen(req).read()
+
+def bb_create(ui, reponame, **opts):
+    data = {
+        'name': reponame,
+        'description': opts.get('description'),
+        'language': opts.get('language'),
+        'website': opts.get('website'),
+    }
+    _bb_apicall(ui, 'repositories', data)
+    # if this completes without exception, assume the request was successful,
+    # and clone the new repo
+    ui.write('repository created, cloning...\n')
+    commands.clone(ui, 'bb://' + reponame)
+
 
 def clone(orig, ui, source, dest=None, **opts):
-
     if source[:2] == 'bb' and ':' in source:
         protocol, rest = source.split(':', 1)
         if rest[:2] != '//':
             source = '%s://%s' % (protocol, rest)
-
     return orig(ui, source, dest, **opts)
 
 def uisetup(ui):
@@ -272,5 +299,14 @@ cmdtable = {
           ('i', 'incoming', None, 'look for incoming changesets'),
           ('f', 'full', None, 'show full incoming info'),
           ],
-         'hg bbforks [-i [-f]] [-n reponame]')
+         'hg bbforks [-i [-f]] [-n reponame]'),
+    'bbcreate':
+        (bb_create,
+         [('d', 'description', '', 'description of the new repo'),
+          ('l', 'language', '', 'programming language'),
+          ('w', 'website', '', 'website of the project'),
+          ],
+         'hg bbcreate [-d desc] [-l lang] [-w site] reponame')
 }
+
+commands.norepo += ' bbcreate'
