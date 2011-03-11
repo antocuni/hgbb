@@ -70,6 +70,7 @@ import base64
 import urllib
 import urllib2
 import urlparse
+import json
 
 # utility functions
 
@@ -250,17 +251,21 @@ def bb_forks(ui, repo, **opts):
             #json = urllib.urlopen(
             #    'http://api.bitbucket.org/1.0/repositories/%s/' % name).read()
 
-def _bb_apicall(ui, endpoint, data):
+def _bb_apicall(ui, endpoint, data, use_pass = True):
     uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
-    req = urllib2.Request(uri, urllib.urlencode(data))
-    # at least re-use Mercurial's password query
-    passmgr = url.passwordmgr(ui)
-    passmgr.add_password(None, uri, get_username(ui), '')
-    upw = '%s:%s' % passmgr.find_user_password(None, uri)
-    req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
+    if data is not None:
+        data = urllib.urlencode(data)
+    req = urllib2.Request(uri, data)
+    #ui.status("Accessing %s" % uri)
+    if use_pass:
+        # at least re-use Mercurial's password query
+        passmgr = url.passwordmgr(ui)
+        passmgr.add_password(None, uri, get_username(ui), '')
+        upw = '%s:%s' % passmgr.find_user_password(None, uri)
+        req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
 
 def bb_create(ui, reponame, **opts):
@@ -276,6 +281,23 @@ def bb_create(ui, reponame, **opts):
     ui.write('repository created, cloning...\n')
     commands.clone(ui, 'bb://' + reponame)
 
+def bb_followers(ui, repo, **opts):
+    '''list all followers of this repo at bitbucket
+
+    An explicit bitbucket reponame (``username/repo``) can be given with the
+    ``-n`` option.
+    '''
+    reponame = get_bbreponame(ui, repo, opts)
+    ui.status('getting followers list\n')
+    retval = _bb_apicall(ui, 'repositories/%s/followers' % (reponame),
+                         None, False)
+    followers = json.loads(retval)
+    ui.write("List of followers:\n")
+    for follower in sorted(followers.get(u'followers', [])):
+        ui.write("    %s (%s %s)\n" % (
+            follower['username'],
+            follower['first_name'],
+            follower['last_name']))
 
 def clone(orig, ui, source, dest=None, **opts):
     if source[:2] == 'bb' and ':' in source:
@@ -312,7 +334,13 @@ cmdtable = {
           ('l', 'language', '', 'programming language'),
           ('w', 'website', '', 'website of the project'),
           ],
-         'hg bbcreate [-d desc] [-l lang] [-w site] reponame')
+         'hg bbcreate [-d desc] [-l lang] [-w site] reponame'),
+    'bbfollowers':
+        (bb_followers,
+         [('n', 'reponame', '',
+           'name of the repo at bitbucket (else guessed from repo dir)'),
+          ],
+         'hg bbcreate [-d desc] [-l lang] [-w site] reponame'),
 }
 
 commands.norepo += ' bbcreate'
