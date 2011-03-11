@@ -214,7 +214,12 @@ def bb_forks(ui, repo, **opts):
     ignore = set(ui.configlist('bb', 'ignore_forks'))
     forks = [name for name in forks if name not in ignore]
 
+    hgcmd = None
     if opts.get('incoming'):
+        hgcmd, hgcmdname = commands.incoming, "incoming"
+    elif opts.get('outgoing'):
+        hgcmd, hgcmdname = commands.outgoing, "outgoing"
+    if hgcmd:
         templateopts = {'template': opts.get('full') and FULL_TMPL or '\xff'}
         for name in forks:
             ui.status('looking at %s\n' % name)
@@ -222,9 +227,9 @@ def bb_forks(ui, repo, **opts):
                 ui.quiet = True
                 ui.pushbuffer()
                 try:
-                    commands.incoming(ui, repo, 'bb://' + name, bundle='',
-                                      force=False, newest_first=True,
-                                      **templateopts)
+                    hgcmd(ui, repo, 'bb://' + name, bundle='',
+                          force=False, newest_first=True,
+                          **templateopts)
                 finally:
                     ui.quiet = False
                     contents = ui.popbuffer(True)
@@ -235,8 +240,8 @@ def bb_forks(ui, repo, **opts):
                     continue
                 number = contents.count('\xff')
                 if number:
-                    ui.status('%d incoming changeset%s found in bb://%s\n' %
-                              (number, number > 1 and 's' or '', name),
+                    ui.status('%d %s changeset%s found in bb://%s\n' %
+                              (number, hgcmdname, number > 1 and 's' or '', name),
                               label='status.modified')
                 ui.write(contents.replace('\xff', ''), label='log.changeset')
     else:
@@ -297,6 +302,7 @@ cmdtable = {
          [('n', 'reponame', '',
            'name of the repo at bitbucket (else guessed from repo dir)'),
           ('i', 'incoming', None, 'look for incoming changesets'),
+          ('o', 'outgoing', None, 'look for outgoing changesets'),
           ('f', 'full', None, 'show full incoming info'),
           ],
          'hg bbforks [-i [-f]] [-n reponame]'),
