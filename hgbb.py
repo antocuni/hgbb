@@ -177,9 +177,10 @@ def list_forks(reponame):
         raise util.Abort('getting bitbucket page failed with:\n%s' % e)
 
     try:
-        forklist = tree.findall('//div[@class="forks pane"]')[0]
-        urls = [a.attrib['href'][:-9] for a in forklist.findall('ol/li/span/a')
-                if a.attrib['href'].endswith('/overview')]
+        forklist = tree.findall('//dd[@class="name"]')
+        # Item 0 is a link to the user profile and item 1 is the link to the
+        # forked repo.
+        urls = [a.findall("a")[1].attrib['href'][:-9] for a in forklist]
         if not urls:
             return []
     except Exception, e:
