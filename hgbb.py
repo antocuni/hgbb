@@ -274,11 +274,13 @@ def bb_create(ui, reponame, **opts):
         'description': opts.get('description'),
         'language': opts.get('language'),
         'website': opts.get('website'),
+        'is_private': opts.get('private'),
     }
     _bb_apicall(ui, 'repositories', data)
     # if this completes without exception, assume the request was successful,
     # and clone the new repo
     ui.write('repository created, cloning...\n')
+    if opts['noclone'] or opts['private']: return
     commands.clone(ui, 'bb://' + reponame)
 
 def bb_followers(ui, repo, **opts):
@@ -327,14 +329,16 @@ cmdtable = {
           ('o', 'outgoing', None, 'look for outgoing changesets'),
           ('f', 'full', None, 'show full incoming info'),
           ],
-         'hg bbforks [-i [-f]] [-n reponame]'),
+         'hg bbforks [-i/-o [-f]] [-n reponame]'),
     'bbcreate':
         (bb_create,
          [('d', 'description', '', 'description of the new repo'),
           ('l', 'language', '', 'programming language'),
           ('w', 'website', '', 'website of the project'),
+          ('p', 'private', None, 'is this repo private?'),
+          ('n', 'noclone', None, 'skip cloning?'),
           ],
-         'hg bbcreate [-d desc] [-l lang] [-w site] reponame'),
+         'hg bbcreate [-d desc] [-l lang] [-w site] [-p] [-n] reponame'),
     'bbfollowers':
         (bb_followers,
          [('n', 'reponame', '',
