@@ -305,6 +305,7 @@ def bb_followers(ui, repo, **opts):
 def bb_link(ui, repo, filename=None, **opts):
     '''display a bitbucket link to the repository, or the the specific file if given'''
     # XXX: might not work on windows, because it uses \ to separate paths
+    lineno = opts.get('lineno')
     reponame = get_bbreponame(ui, repo, opts)
     nodeid = str(repo[None])
     if nodeid.endswith('+'):
@@ -316,6 +317,8 @@ def bb_link(ui, repo, filename=None, **opts):
         path = ''
     url = 'http://bitbucket.org/%s/src/%s/%s'
     url = url % (reponame, nodeid, path)
+    if lineno != -1:
+        url += '#cl-' + str(lineno)
     ui.write(url + '\n')
 
 def clone(orig, ui, source, dest=None, **opts):
@@ -364,8 +367,8 @@ cmdtable = {
          'hg bbcreate [-d desc] [-l lang] [-w site] reponame'),
     'bblink':
         (bb_link,
-         [],
-         'hg bblink filename'),
+         [('l', 'lineno', -1, 'line number')],
+         'hg bblink [-l lineno] filename'),
 }
 
 commands.norepo += ' bbcreate'
