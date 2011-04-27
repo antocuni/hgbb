@@ -137,8 +137,9 @@ class bbrepo(object):
 
     def instance(self, ui, url, create):
         scheme, path = url.split(':', 1)
-        if path.startswith('//'):
-            path = path[2:]
+        # strip the occasional leading // and
+        # the tailing / of the new normalization
+        path = path.strip('/')
         username = get_username(ui)
         if '/' not in path:
             path = username + '/' + path
