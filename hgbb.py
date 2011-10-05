@@ -298,11 +298,12 @@ def bb_followers(ui, repo, **opts):
                          None, False)
     followers = json.loads(retval)
     ui.write("List of followers:\n")
+    encode = lambda t: t.encode('utf-8') if isinstance(t, unicode) else t
     for follower in sorted(followers.get(u'followers', [])):
-        ui.write("    %s (%s %s)\n" % (
+        ui.write("    %s (%s %s)\n" % tuple(map(encode, (
             follower['username'],
             follower['first_name'],
-            follower['last_name']))
+            follower['last_name']))))
 
 def bb_link(ui, repo, filename=None, **opts):
     '''display a bitbucket link to the repository, or the the specific file if given'''
