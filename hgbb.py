@@ -277,6 +277,7 @@ def bb_create(ui, reponame, **opts):
         'language': opts.get('language'),
         'website': opts.get('website'),
         'is_private': opts.get('private'),
+        'scm': 'hg',
     }
     _bb_apicall(ui, 'repositories', data)
     # if this completes without exception, assume the request was successful,
