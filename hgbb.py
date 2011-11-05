@@ -282,9 +282,11 @@ def bb_create(ui, reponame, **opts):
     _bb_apicall(ui, 'repositories', data)
     # if this completes without exception, assume the request was successful,
     # and clone the new repo
-    ui.write('repository created, cloning...\n')
-    if opts['noclone'] or opts['private']: return
-    commands.clone(ui, 'bb://' + reponame)
+    if opts['noclone']:
+        ui.write('repository created\n')
+    else:
+        ui.write('repository created, cloning...\n')
+        commands.clone(ui, 'bb://' + reponame)
 
 def bb_followers(ui, repo, **opts):
     '''list all followers of this repo at bitbucket
