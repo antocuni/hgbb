@@ -271,6 +271,7 @@ def _bb_apicall(ui, endpoint, data, use_pass = True):
     return urllib2.urlopen(req).read()
 
 def bb_create(ui, reponame, **opts):
+    """Create repository on bitbucket"""
     data = {
         'name': reponame,
         'description': opts.get('description'),
