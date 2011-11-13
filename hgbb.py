@@ -274,7 +274,7 @@ def bb_create(ui, reponame, **opts):
     data = {
         'name': reponame,
         'description': opts.get('description'),
-        'language': opts.get('language'),
+        'language': opts.get('language').lower(),
         'website': opts.get('website'),
         'is_private': opts.get('private'),
         'scm': 'hg',
