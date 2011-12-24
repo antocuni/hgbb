@@ -22,23 +22,19 @@ You might write something like this to your ~/.hgrc or another hgrc file.
 
 You can read more about hgrc [in mercurial documentation](http://www.selenic.com/mercurial/hgrc.5.html "Configuration files for Mercurial")
 
-Short urls
+Short URLs
 ----------
 
-        bb://repo
-clones your own "repo" repository, checkout via default method
+With hgbb you can access bitbucket repositories via nicer uris:
 
-        bb://username/repo
-clones the "repo" repository by username, checkout via default method
+`bb://repo` points to your own "repo" repository, checkout via default method
 
-        bb+http://repo
-clones your own "repo" repository, checkout via http
+`bb://username/repo` points to the "repo" repository by username, checkout via default method
 
-        bb+http://username/repo
-clones the "repo" repository by username, checkout via http
+`bb+http://repo` points to your own "repo" repository, checkout via http
 
-        bb+ssh://repo
-clones your own "repo" repository, checkout via ssh
+`bb+http://username/repo` points to the "repo" repository by username, checkout via http
 
-        bb+ssh://username/repo
-clones the "repo" repository by username, checkout via ssh
+`bb+ssh://repo` points to your own "repo" repository, checkout via ssh
+
+`bb+ssh://username/repo` points to the "repo" repository by username, checkout via ssh
