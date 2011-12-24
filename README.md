@@ -10,6 +10,18 @@ Features
 * getting link to the repository or the any file
 * creating repo on bitbucket
 
+Mercurial configuration
+-----------------------
+
+You might write something like this to your ~/.hgrc or another hgrc file.
+
+    [bb]
+    username = your bitbucket username
+    password = your bitbucket http password for http (otherwise you'll be asked)
+    default_method = the default checkout method to use (ssh or http)
+
+You can read more about hgrc [in mercurial documentation](http://www.selenic.com/mercurial/hgrc.5.html "Configuration files for Mercurial")
+
 Short urls
 ----------
 
@@ -30,5 +42,3 @@ clones your own "repo" repository, checkout via ssh
 
         bb+ssh://username/repo
 clones the "repo" repository by username, checkout via ssh
-
-
