@@ -271,6 +271,7 @@ def _bb_apicall(ui, endpoint, data, use_pass = True):
     return urllib2.urlopen(req).read()
 
 def bb_create(ui, reponame, **opts):
+    """Create repository on bitbucket"""
     data = {
         'name': reponame,
         'description': opts.get('description'),
@@ -308,7 +309,7 @@ def bb_followers(ui, repo, **opts):
             follower['last_name']))))
 
 def bb_link(ui, repo, filename=None, **opts):
-    '''display a bitbucket link to the repository, or the the specific file if given'''
+    '''display a bitbucket link to the repository, or the specific file if given'''
     # XXX: might not work on windows, because it uses \ to separate paths
     lineno = opts.get('lineno')
     reponame = get_bbreponame(ui, repo, opts)
