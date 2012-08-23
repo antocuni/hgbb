@@ -62,10 +62,29 @@ URL on the command line.  It will *not* work when put into the [paths]
 entry in hgrc.
 """
 
-from mercurial import hg, url, commands, sshrepo, httprepo, util, \
+import os
+
+import mercurial
+mercurial_path = mercurial.__path__
+
+if os.path.isfile(os.path.join(*mercurial_path + ['httppeer.py'])):
+    from mercurial import httppeer as httprepo
+elif os.path.isfile(os.path.join(*mercurial_path + ['httprepo.py'])):
+    from mercurial import httprepo
+else:
+    raise ImportError('cannot import httprepo or httppeer')
+
+if os.path.isfile(os.path.join(*mercurial_path + ['sshpeer.py'])):
+    from mercurial import sshpeer
+    sshrepo = type('sshrepo', (object,), {'sshrepository': sshpeer.instance})
+elif os.path.isfile(os.path.join(*mercurial_path + ['sshrepo.py'])):
+    from mercurial import sshrepo
+else:
+    raise ImportError('cannot import sshrepo or sshpeer')
+
+from mercurial import hg, url, commands, util, \
      error, extensions
 
-import os
 import base64
 import urllib
 import urllib2
