@@ -62,29 +62,17 @@ URL on the command line.  It will *not* work when put into the [paths]
 entry in hgrc.
 """
 
-import os
-
-import mercurial
-mercurial_path = mercurial.__path__
-
-if os.path.isfile(os.path.join(*mercurial_path + ['httppeer.py'])):
-    from mercurial import httppeer as httprepo
-elif os.path.isfile(os.path.join(*mercurial_path + ['httprepo.py'])):
-    from mercurial import httprepo
-else:
-    raise ImportError('cannot import httprepo or httppeer')
-
-if os.path.isfile(os.path.join(*mercurial_path + ['sshpeer.py'])):
-    from mercurial import sshpeer
-    sshrepo = type('sshrepo', (object,), {'sshrepository': sshpeer.instance})
-elif os.path.isfile(os.path.join(*mercurial_path + ['sshrepo.py'])):
-    from mercurial import sshrepo
-else:
-    raise ImportError('cannot import sshrepo or sshpeer')
+try:
+    from mercurial.httprepo import instance as httprepo_instance
+    from mercurial.sshrepo import sshrepository as sshrepo_instance
+except ImportError: # for 2.3
+    from mercurial.httppeer import instance as httprepo_instance
+    from mercurial.sshpeer import instance as sshrepo_instance
 
 from mercurial import hg, url, commands, util, \
      error, extensions
 
+import os
 import base64
 import urllib
 import urllib2
@@ -361,11 +349,11 @@ def uisetup(ui):
 
 hg.schemes['bb'] = auto_bbrepo()
 hg.schemes['bb+http'] = bbrepo(
-    httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
+    httprepo_instance, 'https://%(auth)sbitbucket.org/%(path)s')
 hg.schemes['bb+https'] = bbrepo(
-    httprepo.instance, 'https://%(auth)sbitbucket.org/%(path)s')
+    httprepo_instance, 'https://%(auth)sbitbucket.org/%(path)s')
 hg.schemes['bb+ssh'] = bbrepo(
-    sshrepo.sshrepository, 'ssh://hg@bitbucket.org/%(path)s')
+    sshrepo_instance, 'ssh://hg@bitbucket.org/%(path)s')
 
 cmdtable = {
     'bbforks':
