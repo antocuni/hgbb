@@ -383,7 +383,7 @@ cmdtable = {
          [('n', 'reponame', '',
            'name of the repo at bitbucket (else guessed from repo dir)'),
           ],
-         'hg bbcreate [-d desc] [-l lang] [-w site] reponame'),
+         'hg bbfollowers [-n reponame]'),
     'bblink':
         (bb_link,
          [('l', 'lineno', -1, 'line number')],
