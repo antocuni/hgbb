@@ -286,9 +286,11 @@ def bb_create(ui, reponame, **opts):
         'description': opts.get('description'),
         'language': opts.get('language').lower(),
         'website': opts.get('website'),
-        'is_private': opts.get('private'),
         'scm': 'hg',
     }
+    if opts.get('private'):
+        data['is_private'] = True
+
     _bb_apicall(ui, 'repositories', data)
     # if this completes without exception, assume the request was successful,
     # and clone the new repo
