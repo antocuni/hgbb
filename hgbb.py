@@ -186,7 +186,9 @@ def list_forks(reponame):
 
     try:
         # there are 2 ol for the listings, first is forks, second is mqs
-        descendants = tree.find('//ol[@class="detailed iterable"]')[0]
+        descendants = tree.xpath('//h2[text()="Forks"]')[0].getnext()
+        if descendants.find('.[@class="detailed iterable"]') is None:
+            return []
         forklist = descendants.findall('.//dd[@class="name"]')
         # Item 0 is a link to the user profile and item 1 is the link to the
         # forked repo.
